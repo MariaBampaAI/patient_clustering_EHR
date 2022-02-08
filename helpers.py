@@ -188,3 +188,25 @@ def plot_variable_histograms(col_names, df):
         plt.legend(loc="upper left", bbox_to_anchor=(1,1),fontsize=12)
         plt.xlim(0, vals.quantile(0.99))
         #fig.savefig(os.path.join(outPath, (str(c) + '_HIST_.png')), bbox_inches='tight')
+
+
+
+"""
+itemid_to_variable_map = pd.read_csv("itemid_to_variable_map.csv")
+item_ids_mapping = itemid_to_variable_map.groupby("LEVEL2")['ITEMID'].apply(list).to_dict()
+print(len(item_ids_mapping))
+remove_list = ['Blood culture',  'Cardiac Index', 'Cardiac Murmur', 'Cholesterol Pleural', 'Code Status','Consciousness Level',
+'Ectopy Frequency','Ectopy Type','Fall Risk','Glascow coma scale eye opening','Glascow coma scale motor response','Glascow coma scale verbal response','Glucose urine','Heart Rhythm','Lung Sounds',
+'Orientation','Pacemaker','Pupillary response left','Pupillary response right','Pupillary size left','Pupillary size right','Riker-SAS Scale','Service Type','Skin Color','Skin Integrity',
+'Total Protein Body Fluid','Total Protein Joint Fluid','Trach Size','Urine Appearance','Urine Color','Urine output','Ventilator Mode','Ventilator Type', "Calcium ionized"]
+
+item_ids_mapping_red = dict([(key, val) for key, val in item_ids_mapping.items() if key not in remove_list])
+
+print(len(item_ids_mapping_red))
+item_ids_mapping_red["Calcium Ionized"] = [3766, 50808, 816, 225667]
+
+import itertools
+vitals_labs_to_keep_list = list(itertools.chain(*item_ids_mapping_red.values()))
+
+
+"""
