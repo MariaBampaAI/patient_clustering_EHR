@@ -1,28 +1,28 @@
 import pandas as pd 
-import psycopg2
-import getpass
-from sklearn.impute import KNNImputer
-from helpers import *
+import numpy as np
+import helper_functions.helpers as helpers
 import warnings
 warnings.filterwarnings("ignore")
 
 
 # reading demographics and storing patients sets
 
-demographics = pd.read_hdf('C:\\Users\\\Maria\\Desktop\\Work\\Projects\\MIMIC\\Representation-Clustering\\patient_clustering_EHR\\data\\data_icu.h5', key='demographics') 
+demographics = pd.read_hdf('D:\\Projects\\MIMIC\\Representation-Clustering\\patient_clustering_EHR\\data_latest\\demographics.h5', key='demographics') 
 subject_id_set = set(demographics['subject_id'])
 hadm_id_set = set(demographics['hadm_id'])
 icustay_id_set = set(demographics['icustay_id'])
 
 print("Variable mapping")
 # get the variable mapping
-var_map = get_variable_mapping("patient_clustering_EHR\\resources\\itemid_to_variable_map.csv")
+var_map = helpers.get_variable_mapping("patient_clustering_EHR\\resources\\itemid_to_variable_map.csv")
 chartitems_to_keep = set(var_map.loc[var_map['LINKSTO'] == 'chartevents'].index)
 labitems_to_keep = set(var_map.loc[var_map['LINKSTO'] == 'labevents'].index)
 #patient_clustering_EHR\\
 # read labs 
 print("Reading labs...")
-labs_vitals = pd.read_hdf('C:\\Users\\\Maria\\Desktop\\Work\\Projects\\MIMIC\\Representation-Clustering\\patient_clustering_EHR\\data\\data_icu.h5', key='labs_vitals')
+labs_vitals = pd.read_hdf('D:\\Projects\\MIMIC\\Representation-Clustering\\patient_clustering_EHR\\data_latest\\data_icu.h5', key='labs_vitals')
+labs_vitals.to_hdf('D:\\Projects\\MIMIC\\Representation-Clustering\\patient_clustering_EHR\\data_latest\\labs_vitals.h5', key='labs_vitals') 
+
 labs_vitals.reset_index(inplace=True)
 #storing the true labels
 true_labels = demographics[demographics.subject_id.isin(labs_vitals.subject_id)][['subject_id', 'hadm_id', 'icustay_id', 'mort_icu']]
@@ -42,6 +42,7 @@ labs_vitals['hours_in'] = (labs_vitals['charttime'] - labs_vitals['intime']).app
 # to filter the itemids table
 itemids = set(labs_vitals.itemid.astype(str))
 
+"""
 
 connection = psycopg2.connect(
     user = 'postgres',
@@ -55,13 +56,23 @@ connection = psycopg2.connect(
 
 
 query_d_items = \
-"""
+
 SELECT itemid, label, dbsource, linksto, category, unitname
 FROM d_items
 WHERE itemid in ({itemids})
 ;
-""".format(itemids=','.join(itemids))
+.format(itemids=','.join(itemids))
 items_ids = pd.read_sql_query(query_d_items, connection).set_index('itemid')
+"""
+items_ids = pd.read_csv("D:\\Projects\\MIMIC\\Representation-Clustering\\patient_clustering_EHR\\resources\\items_ids.csv")
+items_ids = items_ids.set_index('itemid')
+
+
+print(items_ids)
+
+items_ids.to_csv("patient_clustering_EHR\\resources\\items_ids.csv")
+
+
 
 
 labs_vitals.drop(columns=['charttime', 'intime', 'outtime'], inplace=True)
@@ -70,13 +81,14 @@ labs_vitals =  labs_vitals.join(var_map).join(items_ids)
 
 print("Feature Standardization")
 ## standardize features like temperature.
-labs_vitals = standardize_units(labs_vitals)
+
+labs_vitals = helpers.standardize_units(labs_vitals)
 
 print("Variable ranges")
 #variable ranges
-var_ranges = get_variable_ranges("C:/Users/Maria/Desktop/Work/Projects/MIMIC/Representation-Clustering/patient_clustering_EHR/resources/variable_ranges.csv")
+var_ranges = helpers.get_variable_ranges("D:\\Projects\\MIMIC\\Representation-Clustering\\patient_clustering_EHR\\resources\\variable_ranges.csv")
 labs_vitals.set_index(['label', 'LEVEL2'], append=True,inplace=True)
-labs_vitals = apply_variable_limits(labs_vitals, var_ranges, 'LEVEL2')
+labs_vitals = helpers.apply_variable_limits(labs_vitals, var_ranges, 'LEVEL2')
 #labs_vitals_c = labs_vitals.copy()
 
 print("Aggregate and get stats")
@@ -95,7 +107,7 @@ labs_vitals = labs_vitals.sort_index(axis=0).sort_index(axis=1)
 
 labs_vitals = labs_vitals.T.groupby(level=0).first().T
 
-labs_vitals.to_hdf('labs_vitals.h5', key='preprocessed_before48') 
+labs_vitals.to_hdf('D:\\Projects\\MIMIC\\Representation-Clustering\\patient_clustering_EHR\\data_latest\\labs_vitals.h5', key='preprocessed_all_ts') 
 #keep 48h
 print("keeping 48h....")
 labs_vitals_reset = labs_vitals.reset_index()
@@ -180,6 +192,7 @@ for i in range(0,  vital_labs_48.shape[0], 48):
 vital_labs_48_imp = pd.concat(imputed_to_keep)
 
 del imputed_to_keep
-vital_labs_48_imp = vital_labs_48_imp.fillna(0)
+#vital_labs_48_imp = vital_labs_48_imp.fillna(0)
 
-vital_labs_48_imp.to_hdf('labs_vitals.h5', key='preprocessed') 
+vital_labs_48_imp.to_hdf('D:\\Projects\\MIMIC\\Representation-Clustering\\patient_clustering_EHR\\data_latest\\labs_vitals.h5', key='preprocessed_48h') 
+

@@ -1,0 +1,183 @@
+itemid,label,dbsource,linksto,category,unitname
+1126,Art.pH,carevue,chartevents,ABG,
+1127,"WBC   (4-11,000)",carevue,chartevents,Hematology,
+1162,BUN,carevue,chartevents,,
+504,PCWP,carevue,chartevents,,
+506,PEEP Set,carevue,chartevents,,
+512,PVR,carevue,chartevents,,
+535,Peak Insp. Pressure,carevue,chartevents,,
+543,Plateau Pressure,carevue,chartevents,,
+614,Resp Rate (Spont),carevue,chartevents,,
+615,Resp Rate (Total),carevue,chartevents,,
+618,Respiratory Rate,carevue,chartevents,,
+51,Arterial BP [Systolic],carevue,chartevents,,
+52,Arterial BP Mean,carevue,chartevents,,
+89,C.O. (fick),carevue,chartevents,,
+90,C.O.(thermodilution),carevue,chartevents,,
+113,CVP,carevue,chartevents,,
+116,Cardiac Index,carevue,chartevents,,
+189,FiO2 (Analyzed),carevue,chartevents,,
+190,FiO2 Set,carevue,chartevents,,
+198,GCS Total,carevue,chartevents,,
+211,Heart Rate,carevue,chartevents,,
+224,IABP Mean,carevue,chartevents,,
+442,Manual BP [Systolic],carevue,chartevents,,
+455,NBP [Systolic],carevue,chartevents,,
+456,NBP Mean,carevue,chartevents,,
+491,PAP Mean,carevue,chartevents,,
+492,PAP [Systolic],carevue,chartevents,,
+833,RBC,carevue,chartevents,Hematology,
+834,SaO2,carevue,chartevents,ABG's,
+837,Sodium (135-148),carevue,chartevents,Chemistry,
+848,Total Bili (0-1.5),carevue,chartevents,Chemistry,
+849,Total Protein(6.5-8),carevue,chartevents,Chemistry,
+851,Troponin,carevue,chartevents,Enzymes,
+857,Venous CO2(Calc),carevue,chartevents,VBG'S,
+859,Venous PvO2,carevue,chartevents,Mixed Venous Gases,
+860,Venous pH,carevue,chartevents,VBG's,
+861,"WBC (4-11,000)",carevue,chartevents,Hematology,
+1286,PT,carevue,chartevents,,
+1394,Height Inches,carevue,chartevents,,
+619,Respiratory Rate Set,carevue,chartevents,,
+626,SVR,carevue,chartevents,,
+646,SpO2,carevue,chartevents,,
+651,Spon RR (Mech.),carevue,chartevents,,
+676,Temperature C,carevue,chartevents,,
+677,Temperature C (calc),carevue,chartevents,,
+678,Temperature F,carevue,chartevents,,
+679,Temperature F (calc),carevue,chartevents,,
+682,Tidal Volume (Obser),carevue,chartevents,,
+683,Tidal Volume (Set),carevue,chartevents,,
+684,Tidal Volume (Spont),carevue,chartevents,,
+727,Vision FiO2,carevue,chartevents,,
+763,Daily Weight,carevue,chartevents,,
+769,ALT,carevue,chartevents,Enzymes,
+770,AST,carevue,chartevents,Enzymes,
+772,Albumin (>3.2),carevue,chartevents,Chemistry,
+773,Alk. Phosphate,carevue,chartevents,Enzymes,
+777,Arterial CO2(Calc),carevue,chartevents,ABG,
+778,Arterial PaCO2,carevue,chartevents,ABG,
+779,Arterial PaO2,carevue,chartevents,ABG,
+780,Arterial pH,carevue,chartevents,ABG,
+781,BUN (6-20),carevue,chartevents,Chemistry,
+786,Calcium (8.4-10.2),carevue,chartevents,Chemistry,
+787,Carbon Dioxide,carevue,chartevents,Chemistry,
+788,Chloride (100-112),carevue,chartevents,Chemistry,
+789,Cholesterol (<200),carevue,chartevents,Chemistry,
+791,Creatinine (0-1.3),carevue,chartevents,Chemistry,
+803,Direct Bili (0-0.3),carevue,chartevents,Chemistry,
+806,Fibrinogen (150-400),carevue,chartevents,Coags,
+807,Fingerstick Glucose,carevue,chartevents,Chemistry,
+811,Glucose (70-105),carevue,chartevents,Chemistry,
+813,Hematocrit,carevue,chartevents,Hematology,
+814,Hemoglobin,carevue,chartevents,Hematology,
+815,INR (2-4 ref. range),carevue,chartevents,Coags,
+816,Ionized Calcium,carevue,chartevents,Chemistry,
+818,Lactic Acid(0.5-2.0),carevue,chartevents,Chemistry,
+821,Magnesium (1.6-2.6),carevue,chartevents,Chemistry,
+824,PT(11-13.5),carevue,chartevents,Coags,
+825,PTT(22-35),carevue,chartevents,Coags,
+827,Phosphorous(2.7-4.5),carevue,chartevents,Chemistry,
+828,Platelets,carevue,chartevents,Hematology,
+829,Potassium (3.5-5.3),carevue,chartevents,Chemistry,
+1521,Albumin,carevue,chartevents,Chemistry,
+1522,Calcium,carevue,chartevents,Chemistry,
+1523,Chloride,carevue,chartevents,Chemistry,
+1524,Cholesterol,carevue,chartevents,Chemistry,
+1525,Creatinine,carevue,chartevents,Chemistry,
+1528,Fibrinogen,carevue,chartevents,Coags,
+1529,Glucose,carevue,chartevents,Chemistry,
+1530,INR,carevue,chartevents,Coags,
+1531,Lactic Acid,carevue,chartevents,Chemistry,
+1532,Magnesium,carevue,chartevents,Chemistry,
+1533,PTT,carevue,chartevents,Coags,
+1534,Phosphorous,carevue,chartevents,Chemistry,
+1535,Potassium,carevue,chartevents,Chemistry,
+1536,Sodium,carevue,chartevents,Chemistry,
+1538,Total Bili,carevue,chartevents,Chemistry,
+1539,Total Protein,carevue,chartevents,Chemistry,
+1542,WBC,carevue,chartevents,Hematology,
+8368,Arterial BP [Diastolic],carevue,chartevents,,
+8440,Manual BP [Diastolic],carevue,chartevents,,
+8441,NBP [Diastolic],carevue,chartevents,,
+8555,Arterial BP #2 [Diastolic],carevue,chartevents,,
+6701,Arterial BP #2 [Systolic],carevue,chartevents,,
+6702,Arterial BP Mean #2,carevue,chartevents,,
+227073,Anion gap,metavision,chartevents,Labs,None
+224167,Manual Blood Pressure Systolic Left,metavision,chartevents,Routine Vital Signs,mmHg
+227243,Manual Blood Pressure Systolic Right,metavision,chartevents,Routine Vital Signs,mmHg
+223679,TCO2 (calc) Venous,metavision,chartevents,Labs,None
+224684,Tidal Volume (set),metavision,chartevents,Respiratory,mL
+224685,Tidal Volume (observed),metavision,chartevents,Respiratory,mL
+224686,Tidal Volume (spontaneous),metavision,chartevents,Respiratory,mL
+224688,Respiratory Rate (Set),metavision,chartevents,Respiratory,insp/min
+224689,Respiratory Rate (spontaneous),metavision,chartevents,Respiratory,insp/min
+224690,Respiratory Rate (Total),metavision,chartevents,Respiratory,insp/min
+224695,Peak Insp. Pressure,metavision,chartevents,Respiratory,cmH2O
+224696,Plateau Pressure,metavision,chartevents,Respiratory,cmH2O
+224700,Total PEEP Level,metavision,chartevents,Respiratory,cmH2O
+227429,Troponin-T,metavision,chartevents,Labs,None
+227442,Potassium (serum),metavision,chartevents,Labs,None
+227443,HCO3 (serum),metavision,chartevents,Labs,None
+227456,Albumin,metavision,chartevents,Labs,None
+227457,Platelet Count,metavision,chartevents,Labs,None
+224322,IABP Mean,metavision,chartevents,IABP,mmHg
+227464,Potassium (whole blood),metavision,chartevents,Labs,None
+227465,Prothrombin time,metavision,chartevents,Labs,None
+227466,PTT,metavision,chartevents,Labs,None
+227467,INR,metavision,chartevents,Labs,None
+227468,Fibrinogen,metavision,chartevents,Labs,None
+224422,Spont RR,metavision,chartevents,Respiratory,bpm
+225612,Alkaline Phosphate,metavision,chartevents,Labs,None
+225624,BUN,metavision,chartevents,Labs,None
+225625,Calcium non-ionized,metavision,chartevents,Labs,None
+225651,Direct Bilirubin,metavision,chartevents,Labs,None
+225664,Glucose finger stick,metavision,chartevents,Labs,None
+225667,Ionized Calcium,metavision,chartevents,Labs,None
+225668,Lactic Acid,metavision,chartevents,Labs,None
+225677,Phosphorous,metavision,chartevents,Labs,None
+225690,Total Bilirubin,metavision,chartevents,Labs,None
+225698,TCO2 (calc) Arterial,metavision,chartevents,Labs,None
+224639,Daily Weight,metavision,chartevents,General,kg
+224643,Manual Blood Pressure Diastolic Left,metavision,chartevents,Routine Vital Signs,mmHg
+220545,Hematocrit (serum),metavision,chartevents,Labs,None
+220546,WBC,metavision,chartevents,Labs,None
+220587,AST,metavision,chartevents,Labs,None
+220602,Chloride (serum),metavision,chartevents,Labs,None
+220603,Cholesterol,metavision,chartevents,Labs,None
+220615,Creatinine,metavision,chartevents,Labs,None
+220621,Glucose (serum),metavision,chartevents,Labs,None
+220635,Magnesium,metavision,chartevents,Labs,None
+220644,ALT,metavision,chartevents,Labs,None
+220645,Sodium (serum),metavision,chartevents,Labs,None
+220045,Heart Rate,metavision,chartevents,Routine Vital Signs,bpm
+220050,Arterial Blood Pressure systolic,metavision,chartevents,Routine Vital Signs,mmHg
+220051,Arterial Blood Pressure diastolic,metavision,chartevents,Routine Vital Signs,mmHg
+220052,Arterial Blood Pressure mean,metavision,chartevents,Routine Vital Signs,mmHg
+220059,Pulmonary Artery Pressure systolic,metavision,chartevents,Hemodynamics,mmHg
+220074,Central Venous Pressure,metavision,chartevents,Hemodynamics,mmHg
+220179,Non Invasive Blood Pressure systolic,metavision,chartevents,Routine Vital Signs,mmHg
+220180,Non Invasive Blood Pressure diastolic,metavision,chartevents,Routine Vital Signs,mmHg
+220181,Non Invasive Blood Pressure mean,metavision,chartevents,Routine Vital Signs,mmHg
+220210,Respiratory Rate,metavision,chartevents,Respiratory,insp/min
+220227,Arterial O2 Saturation,metavision,chartevents,Labs,%
+220228,Hemoglobin,metavision,chartevents,Labs,g/dl
+220235,Arterial CO2 Pressure,metavision,chartevents,Labs,mmHg
+220274,PH (Venous),metavision,chartevents,Labs,None
+226062,Venous CO2 Pressure,metavision,chartevents,Labs,mmHg
+226512,Admission Weight (Kg),metavision,chartevents,General,kg
+226531,Admission Weight (lbs.),metavision,chartevents,General,None
+226534,Sodium (whole blood),metavision,chartevents,Labs,None
+226536,Chloride (whole blood),metavision,chartevents,Labs,None
+226537,Glucose (whole blood),metavision,chartevents,Labs,None
+226707,Height,metavision,chartevents,General,Inch
+226730,Height (cm),metavision,chartevents,General,cm
+220277,O2 saturation pulseoxymetry,metavision,chartevents,Respiratory,%
+220339,PEEP set,metavision,chartevents,Respiratory,cmH2O
+223761,Temperature Fahrenheit,metavision,chartevents,Routine Vital Signs,?F
+223762,Temperature Celsius,metavision,chartevents,Routine Vital Signs,?C
+223830,PH (Arterial),metavision,chartevents,Labs,None
+223835,Inspired O2 Fraction,metavision,chartevents,Respiratory,None
+225309,ART BP Systolic,metavision,chartevents,Routine Vital Signs,mmHg
+225310,ART BP Diastolic,metavision,chartevents,Routine Vital Signs,mmHg
+225312,ART BP mean,metavision,chartevents,Routine Vital Signs,mmHg
