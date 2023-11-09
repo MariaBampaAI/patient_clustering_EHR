@@ -1,0 +1,4 @@
+units,32.0
+units2,8.0
+dropout,0.2
+learning_rate,0.0001

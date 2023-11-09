@@ -1,273 +1,234 @@
 import pandas as pd, numpy as np, datetime as dt, matplotlib.pyplot as plt 
+import tensorflow as tf
+import keras
 
+def categorize_age(age):
 
-
-
-def str2time(val):
     """
-    Convert str to pandas datetime
+    Categorize age into predefined groups.
 
-    Input: val, pandas column
-    Output: pd.Series converted to datetime or Nat 
+    This function categorizes a person's age into predefined groups based on common age groupings.
+    Age is categorized into three groups: 'youth' for ages less than 25, 'adults' for ages between 25 and 64,
+    and 'seniors' for ages greater than or equal to 65.
+
+    Args:
+        age (int or float): The age of the person to be categorized.
+
+    Returns:
+        str: The age group category to which the age belongs.
+
+    Example:
+        age_group = categorize_age(30)
+        # Result: 'adults'
+    """
+
+
+    #from: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3825015/
+    if  age < 25: 
+        cat = 'youth'
+    elif age >= 25 and age <= 64:
+        cat = 'adults'
+    elif age > 64 :
+        cat = 'seniors'
+
+    return cat
+
+
+def simple_imputer(df, ID_COLS):
+    """
+    Simple imputation for missing values in a DataFrame.
+
+    This function performs a simple imputation of missing values in a DataFrame.
+    It fills missing values with the last available value within each group defined by 'ID_COLS',
+    and then fills remaining missing values with the mean of each group.
+
+    Args:
+        df (pandas.DataFrame): The input DataFrame with missing values.
+        ID_COLS (list): A list of column names used to group data for imputation.
+
+    Returns:
+        pandas.DataFrame: The DataFrame with missing values imputed using the specified strategy.
+
+    Example:
+        df = pd.DataFrame({'PatientID': [1, 1, 2, 2, 3], 'Value': [10, np.nan, 20, 30, np.nan]})
+        imputed_df = simple_imputer(df, ['PatientID'])
+    """
+    df_out = df.copy()
+    icustay_means = df_out.groupby(ID_COLS).mean()
     
-    """
-    try:
-        return dt.datetime.strptime(val, '%Y-%m-%d %H:%M:%S')
-    except:
-        return pd.NaT
-
-
-
-
-def drop_recordings(df, column_name_, threshold):
-    """
-    drop columns with recordings<threshold
-    input -- 
-        df: pandas df
-        column_name: string, the name of multiindex column on level 1
-        threshold
-    output -- 
-        df_red: pd.df, reduced df column 
+    df_out = df_out.groupby(ID_COLS).fillna(
+        method='ffill'
+    ).groupby(ID_COLS).fillna(icustay_means)
+    #.fillna(-1)
     
+    df_out.sort_index(axis=1, inplace=True)
+    return df_out
+
+
+# Define a function to reindex each patient's data with a complete range of hours
+def fill_missing_hours(group):
+
     """
-    threshold = 0.9
-    columns_to_drop = []
-    for column_name in df.columns:
-        #print(column_name)
-        if column_name[1] == column_name_:
-            #get the only the means of the vital_labs
-            if df[column_name].isnull().mean() > threshold:
-                columns_to_drop.append(column_name[0])
-    df_red = df.drop(columns=columns_to_drop)
-    return df_red
+    Reindex patient's data with a complete range of hours.
+
+    This function reindexes a patient's data to include a complete range of hours (0 to 23) and fills
+    missing hours with NaN values. It ensures that each patient's data covers all 24 hours.
+
+    Args:
+        group (pandas.DataFrame): A DataFrame containing patient data with an 'hours_in' column.
+
+    Returns:
+        pandas.DataFrame: A DataFrame with a complete range of hours (0 to 23) and filled with data or NaN values.
+
+    Example:
+        patient_data = pd.DataFrame({"hours_in": [0, 2, 3, 5], "value": [10, 20, 30, 40]})
+        complete_data = fill_missing_hours(patient_data)
+    """
+
+    complete_range = pd.DataFrame({"hours_in": range(24)})
+    return complete_range.merge(group, on="hours_in", how="left")
+
+
+def plot_model_loss(val, train, model,path_results):
+    """
+    Plot and save the loss curve for a model.
+
+    This function plots and saves the loss curve for a model during training. It displays both the training
+    and validation loss over epochs.
+
+    Args:
+        val (list): A list of validation loss values over epochs.
+        train (list): A list of training loss values over epochs.
+        model (str): The name or identifier of the model.
+        path_results (str): The directory path where the loss curve image will be saved.
+
+    Example:
+        train_loss = [0.1, 0.08, 0.06, 0.05]
+        val_loss = [0.12, 0.1, 0.09, 0.08]
+        plot_model_loss(val_loss, train_loss, 'my_model', '/path/to/results')
+    """
+    import matplotlib.pyplot as plt 
+    plt.plot(train)
+    plt.plot(val)
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.savefig(f'{path_results}/losses/loss_{model}.png')
+    plt.clf()
+    plt.cla()
+    plt.close()
+
+
+def create_dicts_MultiModal(static, timeseries):
+    """
+    Create dictionaries for static and time series data as TensorFlow tensors.
+
+    This function takes static and time series data and converts them into TensorFlow tensors.
+    It then stores them in two dictionaries, 'dataset' and 'dataset2', with specific keys.
+
+    Args:
+        static (numpy.ndarray): A 2D numpy array representing static data (samples, features).
+        timeseries (numpy.ndarray): A 3D numpy array representing time series data (samples, timesteps, features).
+
+    Returns:
+        tuple: A tuple containing two dictionaries:
+            - dataset (dict): Contains TensorFlow tensors for static and time series data.
+            - dataset2 (dict): An alternative dictionary with keys 'static' and 'time_series'.
+
+    Example:
+        static_data = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+        timeseries_data = np.array([[[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]], [[0.7, 0.8], [0.9, 1.0], [1.1, 1.2]]])
+        dataset, dataset2 = create_dicts_MultiModal(static_data, timeseries_data)
+    """
+    dataset = {} 
+
+    dataset['static_input'] = static
+    dataset['time_series_input'] = timeseries
 
 
 
-# From MIMIC extract paper
-def get_variable_mapping(mimic_mapping_filename):
-    # Read in the second level mapping of the itemids
-    var_map = pd.read_csv(mimic_mapping_filename, index_col=None)
-    var_map = var_map.loc[(var_map['LEVEL2'] != '') & (var_map['COUNT']>0) & (var_map['STATUS'] == 'ready')]
-    var_map['ITEMID'] = var_map['ITEMID'].astype(int)
-    # renaming to match the mimic tables
-    var_map.rename(columns={'ITEMID': 'itemid'}, inplace=True)
-    var_map = var_map[['LEVEL2', 'itemid', 'LEVEL1', 'LINKSTO']].set_index('itemid')
+    st_train_tensor = tf.convert_to_tensor(dataset['static_input'], name='static')
+    ts1_train_tensor = tf.convert_to_tensor(dataset['time_series_input'], name='time_series')
+
+    dataset = {} 
+    dataset2 = {}
     
 
-    return var_map
+    dataset['static_input'] = st_train_tensor
+    dataset['time_series_input'] = ts1_train_tensor
+
+    dataset2['static'] = st_train_tensor 
+    dataset2['time_series'] = ts1_train_tensor
+    
+
+    return dataset, dataset2
 
 
-
-
-
-def get_variable_ranges(range_filename):
-    # Read in the second level mapping of the itemid, and take those values out
-    columns = [ 'LEVEL2', 'OUTLIER LOW', 'VALID LOW', 'IMPUTE', 'VALID HIGH', 'OUTLIER HIGH' ]
-    to_rename = dict(zip(columns, [ c.replace(' ', '_') for c in columns ]))
-    to_rename['LEVEL2'] = 'VARIABLE'
-    var_ranges = pd.read_csv(range_filename, index_col=None)
-    var_ranges = var_ranges[columns]
-    var_ranges.rename(columns=to_rename, inplace=True)
-    var_ranges = var_ranges.drop_duplicates(subset='VARIABLE', keep='first')
-    var_ranges['VARIABLE'] = var_ranges['VARIABLE'].str.lower()
-    var_ranges.set_index('VARIABLE', inplace=True)
-    var_ranges = var_ranges.loc[var_ranges.notnull().all(axis=1)]
-
-    return var_ranges
-
-def apply_variable_limits(df, var_ranges, var_names_index_col='LEVEL2'):
-    idx_vals        = df.index.get_level_values(var_names_index_col)
-    non_null_idx    = ~df.value.isnull()
-    var_names       = set(idx_vals)
-    var_range_names = set(var_ranges.index.values)
-
-    for var_name in var_names:
-        var_name_lower = var_name.lower()
-        if var_name_lower not in var_range_names:
-            print("No known ranges for %s" % var_name)
-            continue
-
-        outlier_low_val, outlier_high_val, valid_low_val, valid_high_val = [
-            var_ranges.loc[var_name_lower, x] for x in ('OUTLIER_LOW','OUTLIER_HIGH','VALID_LOW','VALID_HIGH')
-        ]
-
-        running_idx = non_null_idx & (idx_vals == var_name)
-
-        outlier_low_idx  = (df.value < outlier_low_val)
-        outlier_high_idx = (df.value > outlier_high_val)
-        valid_low_idx    = ~outlier_low_idx & (df.value < valid_low_val)
-        valid_high_idx   = ~outlier_high_idx & (df.value > valid_high_val)
-
-        var_outlier_idx   = running_idx & (outlier_low_idx | outlier_high_idx)
-        var_valid_low_idx = running_idx & valid_low_idx
-        var_valid_high_idx = running_idx & valid_high_idx
-
-        df.loc[var_outlier_idx, 'value'] = np.nan
-        df.loc[var_valid_low_idx, 'value'] = valid_low_val
-        df.loc[var_valid_high_idx, 'value'] = valid_high_val
-
-        n_outlier = sum(var_outlier_idx)
-        n_valid_low = sum(var_valid_low_idx)
-        n_valid_high = sum(var_valid_high_idx)
-        if n_outlier + n_valid_low + n_valid_high > 0:
-            print(
-                "%s had %d / %d rows cleaned:\n"
-                "  %d rows were strict outliers, set to np.nan\n"
-                "  %d rows were low valid outliers, set to %.2f\n"
-                "  %d rows were high valid outliers, set to %.2f\n"
-                "" % (
-                    var_name,
-                    n_outlier + n_valid_low + n_valid_high, sum(running_idx),
-                    n_outlier, n_valid_low, valid_low_val, n_valid_high, valid_high_val
-                )
-            )
-
-    return df
-
-
-def get_values_by_name_from_df_column_or_index(data_df, colname):
-    """ Easily get values for named field, whether a column or an index
-    Returns
-    -------
-    values : 1D array
+def load_encoder_model(model_path, input_data):
     """
-    try:
-        values = data_df[colname]
-    except KeyError as e:
-        if colname in data_df.index.names:
-            values = data_df.index.get_level_values(colname)
-        else:
-            raise e
-    return values
+    Load a pre-trained encoder model from the specified path and use it to generate latent representations.
 
+    Args:
+        model_path (str): The path to the pre-trained encoder model file.
+        input_data (numpy.ndarray or tf.Tensor): Input data for which latent representations will be generated.
+
+    Returns:
+        numpy.ndarray: Latent representations generated by the encoder model.
+
+    Note:
+        This function loads a pre-trained encoder model from the given file path and applies it to the input data
+        to produce latent representations. It then clears the TensorFlow session to release resources.
+
+    Example:
+        latent_representations = load_encoder_model('path/to/encoder_model.h5', input_data)
+    """
+
+    encoder_model = tf.keras.models.load_model(model_path)
+    encoder = keras.Model(encoder_model.input, encoder_model.layers[-1].output)
+    latent_output = encoder.predict(input_data)
+    tf.keras.backend.clear_session()
+    return latent_output
+
+def load_encoded_spaces(time_series, static, model_run, path):
+    """
+    Load pre-trained encoder models and generate latent representations for time series, static data, and MultiModal data.
+
+    Args:
+        time_series (tf.Tensor or numpy.ndarray): Time series data for which latent representation will be generated.
+        static (pd.DataFrame or numpy.ndarray): Static data for which latent representation will be generated.
+        model_run (int): The run/model number.
+        path (str): The base path for saved encoder models.
+
+    Returns:
+        tuple: A tuple containing latent representations for time series, static, and MultiModal data.
+
+    Note:
+        This function loads pre-trained encoder models for static, time series, and MultiModal data, and then uses
+        these models to generate latent representations. The generated latent representations are returned as a tuple
+        (latent_ts, latent_st, latent_mm).
+
+    Example:
+        latent_ts, latent_st, latent_mm = load_encoded_spaces(time_series_data, static_data, model_run=1, path='path/to/models')
+    """
 
     
-UNIT_CONVERSIONS = [
-    ('weight',                   'oz',  None,             lambda x: x/16.*0.45359237),
-    ('weight',                   'lbs', None,             lambda x: x*0.45359237),
-    ('Fraction inspired oxygen', None,  lambda x: x > 1,  lambda x: x/100.),
-    ('Oxygen saturation',        None,  lambda x: x <= 1, lambda x: x*100.),
-    ('Temperature',              'f',   lambda x: x > 79, lambda x: (x - 32) * 5./9),
-    ('height',                   'in',  None,             lambda x: x*2.54),
-]
-def standardize_units(X, name_col='LEVEL2', unit_col='valueuom', value_col='value', inplace=True):
-    if not inplace: X = X.copy()
-    name_col_vals = get_values_by_name_from_df_column_or_index(X, name_col)
-    unit_col_vals = get_values_by_name_from_df_column_or_index(X, unit_col)
+    static_encoder_path = f'{path}/saved_models/static_encoder_model_run_{model_run}.h5'
+    mm_encoder_path = f'{path}/saved_models/MultiModal_2d_encoder_model_run_{model_run}.h5'
+    ts_encoder_path = f'{path}/saved_models/time_series_encoder_model_run_{model_run}.h5'
 
-    try:
-        name_col_vals = name_col_vals.str
-        unit_col_vals = unit_col_vals.str
-    except:
-        print("Can't call *.str")
-        print(name_col_vals)
-        print(unit_col_vals)
-        raise
-
-    #name_filter, unit_filter = [
-    #    (lambda n: col.contains(n, case=False, na=False)) for col in (name_col_vals, unit_col_vals)
-    #]
-    # TODO(mmd): Why does the above not work, but the below does?
-    name_filter = lambda n: name_col_vals.contains(n, case=False, na=False)
-    unit_filter = lambda n: unit_col_vals.contains(n, case=False, na=False)
-
-    for name, unit, rng_check_fn, convert_fn in UNIT_CONVERSIONS:
-        name_filter_idx = name_filter(name)
-        needs_conversion_filter_idx = name_filter_idx & False
-
-        if unit is not None: needs_conversion_filter_idx |= name_filter(unit) | unit_filter(unit)
-        if rng_check_fn is not None: needs_conversion_filter_idx |= rng_check_fn(X[value_col])
-
-        idx = name_filter_idx & needs_conversion_filter_idx
-
-        X.loc[idx, value_col] = convert_fn(X[value_col][idx])
-
-    return X
-
-def range_unnest(df, col, out_col_name=None, reset_index=False):
-    assert len(df.index.names) == 1, "Does not support multi-index."
-    if out_col_name is None: out_col_name = col
-
-    col_flat = pd.DataFrame(
-        [[i, x] for i, y in df[col].iteritems() for x in range(y+1)],
-        columns=[df.index.names[0], out_col_name]
-    )
-
-    if not reset_index: col_flat = col_flat.set_index(df.index.names[0])
-    return col_flat
+    latent_st = load_encoder_model(static_encoder_path, static.to_numpy())
+    print('STATIC AE SHAPE:', latent_st.shape)
 
 
-def print_proportions(df):
-    """
-    # Print the total proportions!
+    latent_ts = load_encoder_model(ts_encoder_path, time_series)
+    print('GRU SHAPE:', latent_ts.shape)
 
-    input: pandas df
     
-    """
+    dataset, dataset2 = create_dicts_MultiModal(static, time_series)
+
+    latent_mm = load_encoder_model(mm_encoder_path, dataset)
+    print('MM SHAPE:', latent_mm.shape)
 
 
-    rows, vars = df.shape
-    print('')
-    for l, vals in df.iteritems():
-        if str(l[1]) == 'mean':
-            ratio = 1.0 * vals.dropna().count() / rows
-            print(str(l) + ': ' + str(round(ratio, 3)*100) + '% present')
-
-    return None 
-
-
-
-
-def plot_variable_histograms(col_names, df):
-    # Plot some of the data, just to make sure it looks ok
-    for c, vals in df.iteritems():
-        n = vals.dropna().count()
-        if n < 2: continue
-
-        # get median, variance, skewness
-        med = vals.dropna().median()
-        var = vals.dropna().var()
-        skew = vals.dropna().skew()
-
-        # plot
-        fig = plt.figure(figsize=(13, 6))
-        plt.subplots(figsize=(13,6))
-        vals.dropna().plot.hist(bins=100, label='HIST (n={})'.format(n))
-
-        # fake plots for KS test, median, etc
-        plt.plot([], label=' ',color='lightgray')
-        plt.plot([], label='Median: {}'.format(format(med,'.2f')),
-                 color='lightgray')
-        plt.plot([], label='Variance: {}'.format(format(var,'.2f')),
-                 color='lightgray')
-        plt.plot([], label='Skew: {}'.format(format(skew,'.2f')),
-                 color='lightgray')
-
-        # add title, labels etc.
-        plt.title('{} measurements in ICU '.format(str(c)))
-        plt.xlabel(str(c))
-        plt.legend(loc="upper left", bbox_to_anchor=(1,1),fontsize=12)
-        plt.xlim(0, vals.quantile(0.99))
-        #fig.savefig(os.path.join(outPath, (str(c) + '_HIST_.png')), bbox_inches='tight')
-
-
-
-"""
-itemid_to_variable_map = pd.read_csv("itemid_to_variable_map.csv")
-item_ids_mapping = itemid_to_variable_map.groupby("LEVEL2")['ITEMID'].apply(list).to_dict()
-print(len(item_ids_mapping))
-remove_list = ['Blood culture',  'Cardiac Index', 'Cardiac Murmur', 'Cholesterol Pleural', 'Code Status','Consciousness Level',
-'Ectopy Frequency','Ectopy Type','Fall Risk','Glascow coma scale eye opening','Glascow coma scale motor response','Glascow coma scale verbal response','Glucose urine','Heart Rhythm','Lung Sounds',
-'Orientation','Pacemaker','Pupillary response left','Pupillary response right','Pupillary size left','Pupillary size right','Riker-SAS Scale','Service Type','Skin Color','Skin Integrity',
-'Total Protein Body Fluid','Total Protein Joint Fluid','Trach Size','Urine Appearance','Urine Color','Urine output','Ventilator Mode','Ventilator Type', "Calcium ionized"]
-
-item_ids_mapping_red = dict([(key, val) for key, val in item_ids_mapping.items() if key not in remove_list])
-
-print(len(item_ids_mapping_red))
-item_ids_mapping_red["Calcium Ionized"] = [3766, 50808, 816, 225667]
-
-import itertools
-vitals_labs_to_keep_list = list(itertools.chain(*item_ids_mapping_red.values()))
-
-
-"""
+    return latent_ts, latent_st, latent_mm

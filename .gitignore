@@ -132,3 +132,26 @@ dmypy.json
 
 # png 
 *.png 
+
+
+
+# folders
+/mimic_tables
+
+
+# files
+
+
+# data
+/preprocessing/data_stage_1
+/preprocessing/representations
+/sepsis3_queries/data
+
+
+# logs
+/my_log_dir
+/results_EQ/hp_dir_2_sepsis3
+/results_EQ_angus/hp_dir_2_sepsis3
+/results_EQ/saved_models
+/results_EQ_angus/saved_models
+/AE/saved_models

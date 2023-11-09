@@ -1,0 +1,9 @@
+hp_neuros_st_1,104.0
+hp_neuros_st_2,8.0
+hp_neuros_time_1,48.0
+hp_neuros_time_2,8.0
+hp_dropout_rate_st,0.4
+hp_dropout_rate_time,0.2
+learning_rate,0.01
+loss_weight_st,0.04535284895076841
+loss_weight_time,0.2130099088579751
