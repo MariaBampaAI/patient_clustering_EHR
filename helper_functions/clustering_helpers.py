@@ -2,14 +2,14 @@ import numpy as np
 import pandas as pd 
 import matplotlib.pyplot as plt
 from matplotlib.cm import get_cmap
-
+import seaborn as sns
 
 
 from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
 
 from sklearn.manifold import TSNE
 
-
+from sklearn.impute import SimpleImputer
 from sklearn.cluster import HDBSCAN, KMeans, SpectralClustering, AgglomerativeClustering
 from kneed import KneeLocator
 from gower import gower_matrix
@@ -20,8 +20,17 @@ from sklearn.utils import resample
 from scipy.optimize import linear_sum_assignment
 
 from scipy.stats import  pearsonr
+from scipy.stats import kstest, mannwhitneyu, wilcoxon
 
 import math
+
+
+
+
+
+
+
+
 
 RSEED=42
 
@@ -278,236 +287,6 @@ def compare_clustering_methods_baselines(dataset_static, ts2, categorical_featur
 
     return best_method, best_silhouette_score, best_model, results_df, best_labels
 
-
-
-# def compare_clustering_methods_baselines(dataset_static, dataset_ts, ts2, categorical_features_boolean_list,  dataset_name, max_clusters=10):
-#     """
-#     Compare different clustering methods: DBSCAN, hierarchical clustering with Gower distance, and K-Prototypes.
-
-#     Parameters:
-#         data (pd.DataFrame): The input data containing both binary and continuous features.
-#         categorical_features (list): List of indices (column numbers) of categorical features in the data.
-#         max_clusters (int): The maximum number of clusters to consider for K-Prototypes clustering.
-
-#     Returns:
-#         best_method (str): The name of the best clustering method ('DBSCAN', 'Hierarchical', or 'K-Prototypes').
-#         best_silhouette_score (float): The best silhouette score achieved among the methods.
-#         best_model: The best clustering model corresponding to the best silhouette score.
-#         results_df (pd.DataFrame): A DataFrame containing the clustering method names and their corresponding evaluation metrics.
-#     """
-    
-#     # Preprocess the data to combine binary and continuous features into a single matrix
-#     # Combine binary and continuous features
-
-#     #time series should be false
-    
-#     dataset_static = dataset_static.astype(int)
-#     columns = np.concatenate((dataset_static.columns, dataset_ts.columns), axis=None)
-#     # Combine binary and continuous features
-#     data = np.concatenate((dataset_static.values, ts2.values), axis=1)
-#     mixed_data = pd.DataFrame(data, columns = columns).values
-
-
-#     gower_distances_matrix = gower_matrix(mixed_data, cat_features=categorical_features_boolean_list)
-
-
-#     print('HDBSCAN')
-
-#     # Define the range of hyperparameters to search over
-#     param_grid = {
-#         'min_cluster_size': range(30, 40),
-#         'min_samples': range(2, 5)
-#     }
-
-#     hdbscan_best_score = -1.0
-#     best_hdbscan = None
-
-#     for min_cluster_size in param_grid['min_cluster_size']:
-#         for min_samples in param_grid['min_samples']:
-#             # Create an HDBSCAN instance with the current hyperparameters
-#             hdbscan = HDBSCAN(min_cluster_size=min_cluster_size, min_samples = min_samples, metric='precomputed')
-#             #
-#             # Fit the model on the data
-#             hdbscan.fit(gower_distances_matrix.astype(np.float64))
-
-#             # Get the cluster labels
-#             hdbscan_labels = hdbscan.labels_
-            
-#             # Check if more than one cluster is formed
-#             unique_clusters_hdbscan = np.unique(hdbscan_labels)
-#             if len(unique_clusters_hdbscan) > 1:
-
-#                 # Calculate the silhouette score of the current model
-#                 silhouette = silhouette_score(gower_distances_matrix, hdbscan_labels, metric='precomputed')
-
-#                 # Count the number of outliers (-1 labels)
-#                 num_outliers = np.sum(hdbscan_labels == -1)
-
-#                 # Check if the current model has a higher silhouette score and fewer outliers than the best model so far
-
-#                 if silhouette > hdbscan_best_score :
-#                     # and num_outliers < data.shape[0] * 0.1
-#                     #
-#                     #
-#                     hdbscan_best_score = silhouette
-#                     best_hdbscan = hdbscan
-
-#     # Get the best hyperparameters and the corresponding model
-#     best_params = {
-#         'min_cluster_size': best_hdbscan.min_cluster_size,
-#         'min_samples': best_hdbscan.min_samples
-#     }
-
-#     # Get the best cluster labels
-#     hdbscan_labels = best_hdbscan.labels_
-#     #Print the best hyperparameters and silhouette score
-#     print("Best Parameters:", best_params)
-#     print("Best Silhouette Score:", hdbscan_best_score)
-
-
-#     # Check if more than one cluster is formed
-#     unique_clusters_hdscan = np.unique(hdbscan_labels)
-
-#     if len(unique_clusters_hdscan) > 1:
-#         # Compute evaluation metrics
-#         silhouette_avg = silhouette_score(gower_distances_matrix, hdbscan_labels, metric='precomputed')
-#         calinski_harabasz_avg = calinski_harabasz_score(gower_distances_matrix, hdbscan_labels)
-#         davies_bouldin_avg = davies_bouldin_score(gower_distances_matrix, hdbscan_labels)
-
-#     print('K-PROTOTYPES')
-#     kprototypes_best_score = -1
-#     kprototypes_best_model = None
-
-#     index_of_categorical = pd.Series(categorical_features_boolean_list)
-
-#     ps_categorical = list(index_of_categorical[index_of_categorical==True].index)
-
-
-#     for n_clusters in range(2, max_clusters + 1):
-#         kproto = KPrototypes(n_clusters=n_clusters, init='Huang', verbose=0)
-#         clusters = kproto.fit_predict(mixed_data, categorical=ps_categorical)
-
-#         # Compute evaluation metrics
-#         hierarchical_best_score = silhouette_score(mixed_data, clusters)
-#         calinski_harabasz_avg = calinski_harabasz_score(mixed_data, clusters)
-#         davies_bouldin_avg = davies_bouldin_score(mixed_data, clusters)
-
-#         # Update the best model and score if necessary
-#         if silhouette_avg > kprototypes_best_score:
-#             kprototypes_best_score = silhouette_avg
-#             kprototypes_best_model = kproto
-
-
-#     print('HIERARCHICAL')
-#     aggl_labels, hierarchical_best_model = optimize_agglomerative_precomputed(gower_distances_matrix, max_k = 12)
-
-#     # Compute evaluation metrics
-#     silhouette_avg = silhouette_score(gower_distances_matrix, aggl_labels, metric='precomputed')
-#     calinski_harabasz_avg = calinski_harabasz_score(gower_distances_matrix, aggl_labels)
-#     davies_bouldin_avg = davies_bouldin_score(gower_distances_matrix, aggl_labels)
-
-#     # # Perform hierarchical clustering with Gower distance
-#     # hierarchical_best_score = -1
-#     # hierarchical_best_model = None
-
-#     # linkage_methods = ['single','complete', 'average', 'ward']
-#     # # 
-
-#     # for method in linkage_methods:
-#     #     linkage_matrix = linkage(gower_distances_matrix, method=method)
-#     #     for threshold in np.linspace(3, 10, num=10):
-  
-#     #         clusters = fcluster(linkage_matrix, t=threshold, criterion='distance')
-
-#     #         # Check if more than one cluster is formed
-#     #         unique_clusters_hierarchical = np.unique(clusters)
-#     #         if len(unique_clusters_hierarchical) > 1:
-#     #             #print(len(unique_clusters_hierarchical))
-                
-#     #             # Compute evaluation metrics
-#     #             silhouette_avg = silhouette_score(gower_distances_matrix, clusters, metric='precomputed')
-#     #             calinski_harabasz_avg = calinski_harabasz_score(gower_distances_matrix, clusters)
-#     #             davies_bouldin_avg = davies_bouldin_score(gower_distances_matrix, clusters)
-
-#     #             # Update the best model and score if necessary
-#     #             if silhouette_avg > hierarchical_best_score:
-#     #                 hierarchical_best_score = silhouette_avg
-#     #                 hierarchical_best_model = (linkage_matrix, threshold)
-
-                    
-#     print('CONSENSUS')
-
-#     final_assignments_consensus = consensus(dataset_static, ts2, KModes, KMeans, None, None, 5, optimize=True)    
-
-#     silhouette_cc = silhouette_score(gower_distances_matrix, final_assignments_consensus, metric='precomputed')
-#     calinski_harabasz_cc = calinski_harabasz_score(gower_distances_matrix, final_assignments_consensus)
-#     davies_bouldin_cc = davies_bouldin_score(gower_distances_matrix, final_assignments_consensus)
-
-#     silhouette_cc_ts = silhouette_score(ts2, final_assignments_consensus)
-#     calinski_harabasz_cc_ts = calinski_harabasz_score(ts2, final_assignments_consensus)
-#     davies_bouldin_cc_ts = davies_bouldin_score(ts2, final_assignments_consensus )
-
-
-#     silhouette_cc_static = silhouette_score(dataset_static, final_assignments_consensus)
-#     calinski_harabasz_cc_static = calinski_harabasz_score(dataset_static, final_assignments_consensus)
-#     davies_bouldin_cc_static = davies_bouldin_score(dataset_static, final_assignments_consensus)
-#     # Perform K-Prototypes clustering
-    
-
-#     # Compare the best scores of all methods
-#     best_silhouette_score = max(hdbscan_best_score, hierarchical_best_score, kprototypes_best_score, silhouette_cc)
-#     #hdbscan_best_score,
-#     # Determine the best method based on the best score
-#     if best_silhouette_score == hdbscan_best_score:
-#         best_method = 'HDBSCAN'
-#         best_model = best_hdbscan
-#         best_labels = hdbscan_labels
-
-#     elif best_silhouette_score == silhouette_cc:
-#         best_method = 'Consensus'
-#         best_model = 'Consensus'
-#         best_labels = final_assignments_consensus
-
-#     elif best_silhouette_score == hierarchical_best_score:
-#         best_method = 'Hierarchical'
-#         best_model =  'Hierarchical'
-#         best_labels = fcluster(hierarchical_best_model[0], t=hierarchical_best_model[1], criterion='distance')
-#     else:
-#         best_method = 'K-Prototypes'
-#         best_model = kprototypes_best_model
-#         best_labels = best_model.fit_predict(mixed_data, categorical=ps_categorical)
-        
-
-#     # Create a DataFrame with the clustering method names and their evaluation metrics
-#     methods = ['HDBSCAN_gower', 'Hierarchical_gower', 'K-Prototypes', 'consensus', 'consensus_ts', 'consensus_static']
-#     silhouette_scores = [hdbscan_best_score, hierarchical_best_score, kprototypes_best_score, silhouette_cc, silhouette_cc_ts, silhouette_cc_static]
-#     #hdbscan_best_score
-#     calinski_harabasz_scores = [calinski_harabasz_avg, None, calinski_harabasz_avg, calinski_harabasz_cc, calinski_harabasz_cc_ts, calinski_harabasz_cc_static]
-#     davies_bouldin_scores = [davies_bouldin_avg, None, davies_bouldin_avg, davies_bouldin_cc, davies_bouldin_cc_ts, davies_bouldin_cc_static]
-#     results_df = pd.DataFrame({
-#         'Model': methods,
-#         'Silhouette Score': silhouette_scores,
-#         'Davies-Bouldin Score': davies_bouldin_scores,
-#         'Calinski-Harabasz Score': calinski_harabasz_scores,
-
-#     })
-
-
-#     num_clusters = len(np.unique(best_labels))
-#     print(num_clusters)
-  
-
-#     best_reduced_data = TSNE(n_components=2, random_state=2, perplexity=50).fit_transform(gower_distances_matrix)
-
-    
-#     plt.figure(figsize=(24, 18))
-#     for label in np.unique(best_labels):
-#         plt.scatter(best_reduced_data[best_labels == label, 0], best_reduced_data[best_labels == label, 1], label=f'Cluster {label}')
-#     plt.title(f'Best {best_model} Clustering - Dataset: {dataset_name}')
-#     plt.legend()
-
-
-#     return best_method, best_silhouette_score, best_model, results_df, best_labels
 
 
 # Define the custom scoring function for silhouette score
@@ -1349,3 +1128,208 @@ def grouped_bar_plots(data, variable_lists, label, colors=None, legend_labels=No
     # Show the plot
     plt.show()
 
+
+
+# def calculate_significance(temp_agg, feature_name_series):
+#     """
+#     Calculate the significance using the Mann-Whitney U test.
+
+#     Parameters:
+#     - temp_agg (pd.DataFrame): Aggregated time series data for a specific feature.
+#     - feature_name_series (str): Name of the feature for which significance is calculated.
+
+#     Returns:
+#     - p_values (dict): Dictionary containing p-values for Mann-Whitney U test for each cluster.
+#     """
+
+#     p_values = {}
+#     #print(temp_agg.head(10))
+#     # Perform normality test (replace this with your actual normality test)
+#     pvalue_normality = kstest(temp_agg[feature_name_series], 'norm')[1]
+
+#     if pvalue_normality <= 0.01:
+#         # Feature does not follow a normal distribution, perform Mann-Whitney U test for each cluster
+#         all_pop_mean = temp_agg[feature_name_series].values
+
+#         for group, dataframe in temp_agg.groupby(labels_):
+#             #print(dataframe.head(10))
+#             cluster_mean = dataframe[feature_name_series].values
+#             U, p = mannwhitneyu(all_pop_mean, cluster_mean, alternative='two-sided')
+            
+#             # Store the p-value in the dictionary
+#             p_values[group] = p
+
+#     return p_values
+
+def calculate_significance(temp_agg, feature_name_series):
+    p_values = {}
+
+    # Perform normality test (replace this with your actual normality test)
+    pvalue_normality = kstest(temp_agg[feature_name_series], 'norm')[1]
+
+    if pvalue_normality <= 0.01:
+        # Feature does not follow a normal distribution, perform Wilcoxon signed-rank test for each cluster
+        all_pop_mean = temp_agg[feature_name_series].values
+
+        for group, dataframe in temp_agg.groupby(labels_):
+            cluster_mean = dataframe[feature_name_series].values
+
+            # Perform Wilcoxon signed-rank test for dependent samples
+            min_len = min(len(all_pop_mean), len(cluster_mean))
+            _, p = wilcoxon(all_pop_mean[:min_len], cluster_mean[:min_len], alternative='two-sided')
+            
+
+            # Store the p-value in the dictionary
+            p_values[group] = p
+
+    return p_values
+
+
+# from scipy.stats import ttest_rel, ttest_1samp
+
+# def calculate_significance(temp_agg, feature_name_series):
+#     p_values = {}
+
+#     for group, dataframe in temp_agg.groupby(labels_):
+#         cluster_mean = dataframe[feature_name_series].values
+
+#         # Perform paired t-test for dependent samples
+#         _, p = ttest_1samp(temp_agg[feature_name_series], popmean=np.mean(cluster_mean))
+
+#         # Store the p-value in the dictionary
+#         p_values[group] = p
+
+#     return p_values
+
+
+
+def create_heatmap(data, ht_labels, value_to_reshape, title):
+    """
+    Create a heatmap using seaborn.
+
+    Parameters:
+    - data (pd.DataFrame): Data to be visualized in the heatmap.
+    - labels_ (list): List of labels for the heatmap.
+    - value_to_reshape (int): Value used for reshaping the labels.
+    - title (str): Title of the heatmap.
+
+    Returns:
+    - None
+    """
+
+    # Create heatmap using seaborn
+    fig, ax = plt.subplots(figsize=(22, 22))
+    #cmap = sns.color_palette("coolwarm", as_cmap=True)
+    cmap='PiYG'
+    sns.heatmap(data, cmap=cmap, fmt="", robust=True, center = 0.0 , vmin=-0.25, vmax=0.25, ax=ax)
+
+    # Set labels for each cell
+    for i, label in enumerate(ht_labels):
+        row = i // value_to_reshape
+        col = i % value_to_reshape
+        ax.text(col + 0.5, row + 0.5, label, va='center', ha='center')
+
+
+def timeseries_heatmap(labels, timeseriesdataset, clustering_algorithm='db', heatmap=True):
+    """
+    Generate heatmaps based on time series data and labels.
+
+    Parameters:
+    - labels (pd.DataFrame): DataFrame containing labels for each subject.
+    - timeseriesdataset (pd.DataFrame): Time series dataset.
+    - demographics (pd.DataFrame): Demographic information for each subject.
+    - algorithm (str): Type of algorithm used (default: 'time_series').
+    - clustering_algorithm (str): Clustering algorithm used (default: 'db').
+    - heatmap (bool): Whether to generate heatmaps (default: True).
+
+    Returns:
+    - significance (pd.DataFrame): DataFrame containing significance values.
+    """
+    
+    #labels_df = labels.filter(regex=algorithm).dropna().iloc[:, 0:10]
+    #icu_ts = timeseriesdataset.reset_index().set_index('icustay_id')
+
+    #labels_df.index = demographics.index
+
+    for ft in labels.columns:
+
+        temp = pd.concat([timeseriesdataset, labels], axis=1)
+        temp = temp.loc[:, ~temp.columns.duplicated()].copy()
+        temp = temp[list(timeseriesdataset.columns) + [ft]]
+
+        mean_ = pd.DataFrame(temp.groupby([ft]).mean())
+
+        mean_of_pop = timeseriesdataset[list(timeseriesdataset.columns)].groupby(['icustay_id']).mean().mean()
+        mean_of_pop = pd.DataFrame(mean_of_pop, columns=['pop_mean'])
+
+        significant_ts_per_cluster_and_pop = mean_.T.join(mean_of_pop)
+        significant_ts_per_cluster_and_pop_norm = significant_ts_per_cluster_and_pop.iloc[:, 0:-1].div(significant_ts_per_cluster_and_pop.pop_mean, axis=0)
+
+        differences = significant_ts_per_cluster_and_pop_norm - 1
+        differences = differences.round(3)
+
+        # Calculate significance using the calculate_significance function
+        significance = pd.DataFrame(columns=np.sort(temp[ft].unique()), index=temp.columns)
+
+        temp_agg = temp.groupby(['icustay_id']).mean()
+
+        imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
+        imputer = imputer.fit(temp_agg)
+        temp_agg = pd.DataFrame(imputer.transform(temp_agg), columns=temp_agg.columns, index=temp_agg.index)
+
+        for feature_name_series in temp_agg:
+
+            p_values = calculate_significance(temp_agg, feature_name_series)
+
+            for group, p_value in p_values.items():
+                significance.loc[feature_name_series, group] = p_value
+
+        # Code for significance classification (similar to your original code)
+        temp = significance.copy()
+        significance = significance.astype(float)
+        temp_ = significance.copy()
+        significance_ = significance.astype(float)
+        strong_significance_ = significance.astype(float)
+        significance[temp > 0.05] = 'ns'
+        significance[(temp <= 0.05) & (temp >= 0.01)] = '*'
+        significance[(temp < 0.01) & (temp >= 0.001)] = '**'
+        significance[(temp < 0.001) & (temp > 0.0001)] = '***'
+        significance[(temp <= 0.0001)] = '****'
+
+        significance_[temp_ > 0.05] = 1
+        significance_[(temp_ <= 0.05)] = 0
+
+        strong_significance_[temp_ > 0.01] = 'ns'
+        strong_significance_[(temp_ <= 0.01)] = '*'
+
+        #print(significance)
+
+        significance_flatten = [value for value in strong_significance_.iloc[:-1, :].to_numpy().flatten()]
+
+        
+        differences_flatten = ["{0:.2}".format(value) for value in differences.iloc[:, :].to_numpy().flatten()]
+
+
+
+
+        ht_labels = [f"{v1}\n{v2}" for v1, v2 in zip(differences_flatten, significance_flatten)]
+        #ht_labels = [f"{v1}" for v1 in differences_flatten]
+
+     
+
+        if clustering_algorithm == 'db':
+            value_to_reshape = np.max(labels[ft].unique()) + 2
+        else:
+            value_to_reshape = np.max(labels[ft].unique()) + 1
+            print(value_to_reshape)
+
+    if heatmap:
+        # Create subplots for different heatmaps
+        #fig, axes = plt.figure(figsize=(20, 60))
+
+        # Create heatmaps using create_heatmap function
+        #create_heatmap(significance_.iloc[1:-1, :], labels_, value_to_reshape, f'{algorithm} - Significance')
+        #create_heatmap(strong_significance_.iloc[1:-1, :], labels_, value_to_reshape, f'{algorithm} - Strong Significance')
+        create_heatmap(differences, ht_labels,  value_to_reshape, 'Sepsis - Mean Differences')
+
+    return significance, differences, mean_of_pop
