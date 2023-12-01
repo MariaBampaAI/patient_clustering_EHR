@@ -1,6 +1,4 @@
-
 RSEED = 42
-
 import os
 import sys
 import pandas as pd
@@ -45,7 +43,7 @@ callbacks = [
     ),
     keras.callbacks.EarlyStopping(
         monitor='val_loss',
-        patience=5,
+        patience=20,
         restore_best_weights=True
     ),
     #keras.callbacks.LearningRateScheduler(scheduler),
@@ -132,7 +130,7 @@ def represent(AEmodels, modalities, cohort, datasets, model_run, epochs=100, pat
         datasets[2],
         datasets[3],
         epochs=epochs,
-        batch_size=128,
+        batch_size=32,
         #32 angus
         verbose=1,
         shuffle=False,
@@ -393,7 +391,7 @@ if __name__ == "__main__":
         represent([models.AutoencoderStatic, models.AutoencoderGRU, models.AutoenconderMultiModal_2d],\
                                         ['static', 'time_series', 'MultiModal_2d', 'late_fusion'], \
                                             cohort, [static.values, time_series_3d, dataset, dataset2], \
-                                                'latent_4(4)_EQ', epochs=300, path_results = path, pretrain=PT)
+                                                'latent_4(6)_EQ', epochs=300, path_results = path, pretrain=PT)
     else: 
 
         print('models are trained you can load the encoded spaces')

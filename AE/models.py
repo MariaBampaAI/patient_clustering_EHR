@@ -226,9 +226,9 @@ def AutoenconderMultiModal_2d(feature_array, hp_neuros_st_1, hp_neuros_st_2, hp_
         autoencoder.load_weights(pretrained_weights)
 
 
-    autoencoder.compile(optimizer=optimizer, loss=[loss_1, loss_2], loss_weights=[0.5, 1])
+    autoencoder.compile(optimizer=optimizer, loss=[loss_1, loss_2], loss_weights=[0.05, 0.7])
     #loss_weight_st, loss_weight_time
-    #0.05, 0.5
+    #loss_weights=[0.5, 1] agnus
 
     return autoencoder, encoder
 

@@ -21,6 +21,7 @@ CREATE TABLE ccs_dx
 -- copy all columns *but* ccs_mid and ccs_name
 -- we will populate these after the data is loaded in
 \COPY ccs_dx (icd9_code, ccs_level1, ccs_group1, ccs_level2, ccs_group2, ccs_level3, ccs_group3, ccs_level4, ccs_group4) FROM PROGRAM 'gzip -dc ccs_multi_dx.csv.gz' CSV HEADER;
+--\copy ccs_dx (icd9_code, ccs_level1, ccs_group1, ccs_level2, ccs_group2, ccs_level3, ccs_group3, ccs_level4, ccs_group4) FROM PROGRAM 'gzip -dc ccs_multi_dx.csv.gz' CSV HEADER;
 
 -- add in matched ID, name, and ccs_id
 --  matched id (ccs_mid): the ccs ID with the hierachy, e.g. 7.1.2.1

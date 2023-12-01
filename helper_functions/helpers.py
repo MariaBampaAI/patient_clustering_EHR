@@ -114,7 +114,7 @@ def plot_model_loss(val, train, model,path_results):
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
-    plt.savefig(f'{path_results}/losses/loss_{model}.png')
+    plt.savefig(f'{path_results}/loss_{model}.png')
     plt.clf()
     plt.cla()
     plt.close()
@@ -213,9 +213,9 @@ def load_encoded_spaces(time_series, static, model_run, path):
     """
 
     
-    static_encoder_path = f'{path}/saved_models/static_encoder_model_run_{model_run}.h5'
-    mm_encoder_path = f'{path}/saved_models/MultiModal_2d_encoder_model_run_{model_run}.h5'
-    ts_encoder_path = f'{path}/saved_models/time_series_encoder_model_run_{model_run}.h5'
+    static_encoder_path = f'{path}/static_encoder_model_run_{model_run}.h5'
+    mm_encoder_path = f'{path}/MultiModal_2d_encoder_model_run_{model_run}.h5'
+    ts_encoder_path = f'{path}/time_series_encoder_model_run_{model_run}.h5'
 
     latent_st = load_encoder_model(static_encoder_path, static.to_numpy())
     print('STATIC AE SHAPE:', latent_st.shape)

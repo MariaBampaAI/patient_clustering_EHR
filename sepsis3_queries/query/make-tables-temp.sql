@@ -11,17 +11,17 @@ BEGIN;
 -- ----------------------------- --
 
 
-\i tbls/abx-poe-list.sql
-\i tbls/abx-micro-prescription.sql
-\i tbls/suspicion-of-infection.sql
+--\i tbls/abx-poe-list.sql
+--\i tbls/abx-micro-prescription.sql
+--\i tbls/suspicion-of-infection.sql
 
 -- blood cultures around ICU admission
 -- generate cohort
-\i tbls/cohort.sql
+--\i tbls/cohort.sql
 
 
 
 
-\i ../mimic-code/concepts/comorbidity/elixhauser_quan.sql
+\i ../mimic-code/concepts/diagnosis/ccs_dx.sql
 
 COMMIT;

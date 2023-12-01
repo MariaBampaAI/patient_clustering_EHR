@@ -119,7 +119,12 @@ select co.icustay_id, co.hadm_id
         as THIRTYDAY_EXPIRE_FLAG
     , ie.los as icu_los
     , extract(epoch from (adm.dischtime - adm.admittime))/60.0/60.0/24.0 as hosp_los
+    , CASE when adm.deathtime between ie.intime and ie.outtime THEN 1 ELSE 0 END AS mort_icu
+    , CASE when adm.deathtime between adm.admittime and adm.dischtime THEN 1 ELSE 0 END AS mort_hosp
 
+
+    -- diagnosis at admission
+    , adm.diagnosis
     -- sepsis flags
     , a.angus as sepsis_angus
     , m.sepsis as sepsis_martin
