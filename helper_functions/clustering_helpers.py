@@ -19,8 +19,7 @@ from kmodes.kmodes import KModes
 from sklearn.utils import resample
 from scipy.optimize import linear_sum_assignment
 
-from scipy.stats import  pearsonr
-from scipy.stats import kstest, mannwhitneyu, wilcoxon
+from scipy.stats import kstest, mannwhitneyu, wilcoxon, pointbiserialr, pearsonr
 
 import math
 
@@ -827,65 +826,141 @@ def create_spider_plot(categories, values, cluster_names):
 
 
 
-def calculate_cluster_correlation_multiple_features(df, cluster_column, feature_columns, mortality_df, mortality_columns):
+
+
+def plot_real_feature_correlation_per_cluster(df, cluster_column, correlation_threshold=0.5, pvalue_threshold=0.05, heatmap = True):
     """
-    Calculate the cluster average values of multiple features and their point-biserial correlation with binary mortality outcomes.
+    Plot a correlation matrix for real features within each cluster.
 
     Args:
-        df (pd.DataFrame): Input dataframe containing cluster information, features, and binary mortality outcomes.
+        df (pd.DataFrame): DataFrame containing real features and a column indicating cluster labels.
         cluster_column (str): Name of the column containing cluster labels.
-        feature_columns (list): List of column names containing features.
-        mortality_df (pd.DataFrame): DataFrame containing mortality information with the same row IDs as 'df'.
-        mortality_columns (list): List of column names containing binary mortality outcomes.
+        correlation_threshold (float): Threshold for correlation strength (absolute value).
+        pvalue_threshold (float): Threshold for statistical significance.
 
     Returns:
-        pd.DataFrame: DataFrame containing cluster labels, average feature values, and point-biserial correlation with mortality outcomes.
+        None (displays the plot).
     """
-    # Merge mortality information into the analysis DataFrame
-    merged_df = pd.merge(df, mortality_df, left_index=True, right_index=True)
-
-    # Create an empty DataFrame to store results
-    result_df = pd.DataFrame(columns=[cluster_column] + feature_columns + mortality_columns)
+    # Initialize an empty list to store correlation matrices for each cluster
+    correlation_matrices = []
 
     # Iterate over unique clusters
-    for cluster_label in merged_df[cluster_column].unique():
+    for cluster_label in df[cluster_column].unique():
         # Filter dataframe for the current cluster
-        cluster_df = merged_df[merged_df[cluster_column] == cluster_label]
+        cluster_df = df[df[cluster_column] == cluster_label]
 
-        # Calculate average values for each feature in the cluster
-        avg_values = cluster_df[feature_columns].mean()
+        # Calculate the correlation matrix for the current cluster
+        correlation_matrix = cluster_df.corr()
+        #print(correlation_matrix)
 
-        # Replace NaN values with the mean of the column
-        cluster_df[feature_columns] = cluster_df[feature_columns].apply(lambda col: col.fillna(col.mean()))
-
-        # Calculate point-biserial correlation with each binary mortality outcome
-        # correlations = [pointbiserialr(cluster_df[feature_column], cluster_df[mortality_column])[0] for feature_column in feature_columns for mortality_column in mortality_columns]
-        # pvalue = [pointbiserialr(cluster_df[feature_column], cluster_df[mortality_column])[1] for feature_column in feature_columns for mortality_column in mortality_columns]
-        # Calculate Pearson correlation with each binary mortality outcome for each feature
-        correlations = [
-            pearsonr(cluster_df[feature_column], cluster_df[mortality_column])[0]
-            for feature_column in feature_columns
-            for mortality_column in mortality_columns
+        # Filter based on correlation strength and statistical significance
+        significant_correlations = correlation_matrix[
+            ((correlation_matrix >= correlation_threshold) | (correlation_matrix <= -correlation_threshold)) &
+            (correlation_matrix < 1.0) #&  # Exclude self-correlations
+            #(correlation_matrix.index != correlation_matrix.columns)  # Exclude duplicate entries
         ]
-        pvalue = [
-            pearsonr(cluster_df[feature_column], cluster_df[mortality_column])[1]
-            for feature_column in feature_columns
-            for mortality_column in mortality_columns
-        ]
-        # # Create a row for the result DataFrame
-        result_row = pd.DataFrame([[cluster_label] + list(avg_values.values) + correlations + pvalue], columns=[cluster_column] + feature_columns + mortality_columns + \
-                                  ['pvalue_hosp'] + ['pvalue_30'] + ['pvalue_inicu']+['pvalue_inhosp'])
-        #result_row = pd.DataFrame([avg_values.tolist() + correlations], columns=feature_columns + mortality_columns*len(feature_columns))
 
-        # Append the result row to the result DataFrame
-        result_df = result_df.append(result_row, ignore_index=True)
-        # Round values in both columns to three decimal places
-        result_df['pvalue_hosp'] = result_df['pvalue_hosp'].round(3)
-        result_df['pvalue_30'] = result_df['pvalue_30'].round(3)
-        result_df['pvalue_inicu'] = result_df['pvalue_inicu'].round(3)
-        result_df['pvalue_inhosp'] = result_df['pvalue_inhosp'].round(3)
+        # Append the significant correlations to the list
+        correlation_matrices.append(significant_correlations)
+
+    if heatmap == True:
+
+        # Plot the correlation matrices for each cluster
+        fig, axes = plt.subplots(nrows=len(correlation_matrices), figsize=(22, 12 * len(correlation_matrices)))
+        
+        for idx, (cluster_label, correlations) in enumerate(zip(df[cluster_column].unique(), correlation_matrices)):
+            # Create a mask for the upper triangle to avoid duplication
+            mask = np.triu(np.ones_like(correlations, dtype=bool))
+            
+            # Plot the correlation matrix for the current cluster
+            sns.heatmap(correlations, annot=True, cmap='coolwarm', fmt=".2f", mask=mask, ax=axes[idx])
+            axes[idx].set_title(f'Cluster {cluster_label}')
+
+        plt.show()
+
+    return correlation_matrices
+
+
+def plot_correlation_heatmap(result_df, correlation_threshold, pvalue_threshold, cluster, heatmap = True):
+    """
+    Plot a heatmap to visualize strong correlations.
+
+    Args:
+        result_df (pd.DataFrame): DataFrame containing cluster labels, feature names, binary feature names, correlation coefficients, and p-values.
+        correlation_threshold (float): Threshold for correlation strength (absolute value).
+        pvalue_threshold (float): Threshold for statistical significance.
+        cluster (str): the name of the clustering algorithn
+
+    Returns:
+        None (displays the plot).
+    """
+    # Filter based on correlation strength and statistical significance
+    significant_features = result_df[
+        ((result_df['Correlation'] >= correlation_threshold) | (result_df['Correlation'] <= -correlation_threshold)) &
+        (result_df['PValue'] <= pvalue_threshold)
+    ]
+
+    if heatmap == True:
+        for cluster_label in significant_features[cluster].unique():
+            # Filter data for the current cluster
+            cluster_data = significant_features[significant_features[cluster] == cluster_label]
+
+            # Pivot the data to create a correlation matrix
+            correlation_matrix = cluster_data.pivot(index='RealFeature', columns='BinaryFeature', values='Correlation')
+
+            # Create a heatmap with annotations for each cluster
+            plt.figure(figsize=(10, 8))
+            sns.heatmap(correlation_matrix, robust=True, center = 0.0 , vmin=-0.2, vmax=0.2, annot=False,  cmap='PiYG', cbar=True)
+            plt.title(f'Correlation Heatmap for Cluster {cluster_label}')
+            plt.show()
+
+    return significant_features
+
+
+
+
+def calculate_cluster_correlation_real_binary(df_real, df_binary, cluster_column):
+    """
+    Calculate the point-biserial correlation between each real-valued feature and each binary feature within each cluster.
+
+    Args:
+        df_real (pd.DataFrame): DataFrame containing real-valued features.
+        df_binary (pd.DataFrame): DataFrame containing binary features.
+        cluster_column (str): Name of the column containing cluster labels.
+
+    Returns:
+        pd.DataFrame: DataFrame containing cluster labels, feature names, binary feature names, correlation coefficients, and p-values.
+    """
+    result_df = pd.DataFrame(columns=[cluster_column, 'RealFeature', 'BinaryFeature', 'Correlation', 'PValue'])
+
+    # Iterate over unique clusters
+    for cluster_label in df_real[cluster_column].unique():
+        # Filter dataframes for the current cluster
+        df_real_cluster = df_real[df_real[cluster_column] == cluster_label]
+        df_binary_cluster = df_binary[df_binary[cluster_column] == cluster_label]
+
+        for real_feature in df_real_cluster.columns:
+            for binary_feature in df_binary_cluster.columns:
+                # Calculate point-biserial correlation
+                correlation_result = pointbiserialr(df_real_cluster[real_feature], df_binary_cluster[binary_feature])
+                correlation_coefficient = correlation_result[0]
+                p_value = correlation_result[1]
+
+                # Append the result to the DataFrame
+                result_df = result_df.append({
+                    cluster_column: cluster_label,
+                    'RealFeature': real_feature,
+                    'BinaryFeature': binary_feature,
+                    'Correlation': correlation_coefficient,
+                    'PValue': p_value
+                }, ignore_index=True)
+
+    # Round values in p-value column to three decimal places
+    result_df['PValue'] = result_df['PValue'].round(3)
 
     return result_df
+
+
 
 
 def create_spider_plot(categories, values, cluster_names):
@@ -1130,38 +1205,9 @@ def grouped_bar_plots(data, variable_lists, label, colors=None, legend_labels=No
 
 
 
-# def calculate_significance(temp_agg, feature_name_series):
-#     """
-#     Calculate the significance using the Mann-Whitney U test.
 
-#     Parameters:
-#     - temp_agg (pd.DataFrame): Aggregated time series data for a specific feature.
-#     - feature_name_series (str): Name of the feature for which significance is calculated.
 
-#     Returns:
-#     - p_values (dict): Dictionary containing p-values for Mann-Whitney U test for each cluster.
-#     """
-
-#     p_values = {}
-#     #print(temp_agg.head(10))
-#     # Perform normality test (replace this with your actual normality test)
-#     pvalue_normality = kstest(temp_agg[feature_name_series], 'norm')[1]
-
-#     if pvalue_normality <= 0.01:
-#         # Feature does not follow a normal distribution, perform Mann-Whitney U test for each cluster
-#         all_pop_mean = temp_agg[feature_name_series].values
-
-#         for group, dataframe in temp_agg.groupby(labels_):
-#             #print(dataframe.head(10))
-#             cluster_mean = dataframe[feature_name_series].values
-#             U, p = mannwhitneyu(all_pop_mean, cluster_mean, alternative='two-sided')
-            
-#             # Store the p-value in the dictionary
-#             p_values[group] = p
-
-#     return p_values
-
-def calculate_significance(temp_agg, feature_name_series):
+def calculate_significance(temp_agg, algorithm, feature_name_series):
     p_values = {}
 
     # Perform normality test (replace this with your actual normality test)
@@ -1171,7 +1217,7 @@ def calculate_significance(temp_agg, feature_name_series):
         # Feature does not follow a normal distribution, perform Wilcoxon signed-rank test for each cluster
         all_pop_mean = temp_agg[feature_name_series].values
 
-        for group, dataframe in temp_agg.groupby(labels_):
+        for group, dataframe in temp_agg.groupby(algorithm):
             cluster_mean = dataframe[feature_name_series].values
 
             # Perform Wilcoxon signed-rank test for dependent samples
@@ -1209,7 +1255,7 @@ def create_heatmap(data, ht_labels, value_to_reshape, title):
 
     Parameters:
     - data (pd.DataFrame): Data to be visualized in the heatmap.
-    - labels_ (list): List of labels for the heatmap.
+    - ht_labels (list): List of labels for the heatmap.
     - value_to_reshape (int): Value used for reshaping the labels.
     - title (str): Title of the heatmap.
 
@@ -1279,7 +1325,7 @@ def timeseries_heatmap(labels, timeseriesdataset, clustering_algorithm='db', hea
 
         for feature_name_series in temp_agg:
 
-            p_values = calculate_significance(temp_agg, feature_name_series)
+            p_values = calculate_significance(temp_agg, labels.columns[0], feature_name_series)
 
             for group, p_value in p_values.items():
                 significance.loc[feature_name_series, group] = p_value
