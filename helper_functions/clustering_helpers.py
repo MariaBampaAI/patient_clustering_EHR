@@ -17,9 +17,10 @@ from kmodes.kprototypes import KPrototypes
 from kmodes.kmodes import KModes
 
 from sklearn.utils import resample
-from scipy.optimize import linear_sum_assignment
 
+from scipy.optimize import linear_sum_assignment
 from scipy.stats import kstest, mannwhitneyu, wilcoxon, pointbiserialr, pearsonr
+from scipy.cluster import hierarchy
 
 import math
 
@@ -828,93 +829,100 @@ def create_spider_plot(categories, values, cluster_names):
 
 
 
-def plot_real_feature_correlation_per_cluster(df, cluster_column, correlation_threshold=0.5, pvalue_threshold=0.05, heatmap = True):
+
+def plot_real_feature_correlation_per_cluster(df, cluster_column, cluster_to_plot=None, correlation_threshold=0.5, pvalue_threshold=0.05, heatmap=True):
     """
     Plot a correlation matrix for real features within each cluster.
 
     Args:
         df (pd.DataFrame): DataFrame containing real features and a column indicating cluster labels.
         cluster_column (str): Name of the column containing cluster labels.
+        cluster_to_plot (int or None): Cluster to plot heatmaps for. If None, plot for all clusters.
         correlation_threshold (float): Threshold for correlation strength (absolute value).
         pvalue_threshold (float): Threshold for statistical significance.
 
     Returns:
         None (displays the plot).
     """
-    # Initialize an empty list to store correlation matrices for each cluster
+    # Initialize an empty list to store correlation matrices and corresponding cluster labels
     correlation_matrices = []
+    cluster_labels = []
 
-    # Iterate over unique clusters
-    for cluster_label in df[cluster_column].unique():
+    # Define clusters to iterate over
+    clusters_to_iterate = [cluster_to_plot] if cluster_to_plot is not None else df[cluster_column].unique()
+
+    # Iterate over selected clusters
+    for cluster_label in clusters_to_iterate:
         # Filter dataframe for the current cluster
         cluster_df = df[df[cluster_column] == cluster_label]
 
         # Calculate the correlation matrix for the current cluster
-        correlation_matrix = cluster_df.corr()
-        #print(correlation_matrix)
+        correlation_matrix = cluster_df.iloc[:,:-1].corr()
+
+        # Replace NaN values with a default value (e.g., 0)
+        correlation_matrix = correlation_matrix.fillna(0)
+
+        # Perform hierarchical clustering based on the correlation matrix
+        linkage = hierarchy.linkage(correlation_matrix, method='average')
+        order = hierarchy.leaves_list(linkage)
+
+        # Reorder the correlation matrix based on the hierarchical clustering
+        reordered_correlation_matrix = correlation_matrix.iloc[order, order]
 
         # Filter based on correlation strength and statistical significance
-        significant_correlations = correlation_matrix[
-            ((correlation_matrix >= correlation_threshold) | (correlation_matrix <= -correlation_threshold)) &
-            (correlation_matrix < 1.0) #&  # Exclude self-correlations
-            #(correlation_matrix.index != correlation_matrix.columns)  # Exclude duplicate entries
+        significant_correlations = reordered_correlation_matrix[
+            ((reordered_correlation_matrix >= correlation_threshold) |
+             (reordered_correlation_matrix <= -correlation_threshold)) &
+            (reordered_correlation_matrix < 1.0)
         ]
 
-        # Append the significant correlations to the list
+        # Append the significant correlations and cluster label to the lists
         correlation_matrices.append(significant_correlations)
+        cluster_labels.append(cluster_label)
 
-    if heatmap == True:
+    # Sort correlation matrices and cluster labels by cluster label
+    sorted_indices = np.argsort(cluster_labels)
+    correlation_matrices = [correlation_matrices[i] for i in sorted_indices]
+    sorted_cluster_labels = np.array(cluster_labels)[sorted_indices]
 
-        # Plot the correlation matrices for each cluster
-        fig, axes = plt.subplots(nrows=len(correlation_matrices), figsize=(22, 12 * len(correlation_matrices)))
-        
-        for idx, (cluster_label, correlations) in enumerate(zip(df[cluster_column].unique(), correlation_matrices)):
-            # Create a mask for the upper triangle to avoid duplication
-            mask = np.triu(np.ones_like(correlations, dtype=bool))
-            
-            # Plot the correlation matrix for the current cluster
-            sns.heatmap(correlations, annot=True, cmap='coolwarm', fmt=".2f", mask=mask, ax=axes[idx])
-            axes[idx].set_title(f'Cluster {cluster_label}')
+    if heatmap:
+        # Plot the correlation matrices
+        if cluster_to_plot is not None:
+            # Plot a single heatmap for the specified cluster with only the lower triangle
+            plt.figure(figsize=(14, 10))
+            mask = np.triu(np.ones_like(correlation_matrices[0], dtype=bool))
+            sns.heatmap(correlation_matrices[0], annot=True, cmap='coolwarm', fmt=".2f", mask=mask, yticklabels=True, xticklabels=True)
+            plt.title(f'Cluster {cluster_to_plot}')
+            plt.show()
+        else:
+            # Plot heatmaps for all clusters sorted by cluster label with 3 plots per row
+            num_clusters = len(clusters_to_iterate)
+            num_rows = (num_clusters + 2) // 2  # 3 columns per row
 
-        plt.show()
+            fig, axes = plt.subplots(nrows=num_rows, ncols=2, figsize=(22, 8 * num_rows))
+
+            for idx, (cluster_label, correlations) in enumerate(zip(sorted_cluster_labels, correlation_matrices)):
+                row, col = divmod(idx, 2)
+                mask = np.triu(np.ones_like(correlations, dtype=bool))
+
+                # Plot the reordered correlation matrix for the current cluster
+                sns.heatmap(correlations, annot=True, cmap='coolwarm', fmt=".2f", mask=mask, ax=axes[row, col], yticklabels=True, xticklabels=True)
+
+                # Rotate y-axis labels for better visibility
+                axes[row, col].tick_params(axis='y', rotation=0)  # Adjust the rotation angle as needed
+
+                axes[row, col].set_title(f'Cluster {cluster_label}')
+
+            # Hide any remaining empty subplots
+            for idx in range(len(clusters_to_iterate), num_rows * 2):
+                row, col = divmod(idx, 2)
+                fig.delaxes(axes[row, col])
+
+            plt.tight_layout()
+            plt.show()
 
     return correlation_matrices
 
-
-def plot_correlation_heatmap(result_df, correlation_threshold, pvalue_threshold, cluster, heatmap = True):
-    """
-    Plot a heatmap to visualize strong correlations.
-
-    Args:
-        result_df (pd.DataFrame): DataFrame containing cluster labels, feature names, binary feature names, correlation coefficients, and p-values.
-        correlation_threshold (float): Threshold for correlation strength (absolute value).
-        pvalue_threshold (float): Threshold for statistical significance.
-        cluster (str): the name of the clustering algorithn
-
-    Returns:
-        None (displays the plot).
-    """
-    # Filter based on correlation strength and statistical significance
-    significant_features = result_df[
-        ((result_df['Correlation'] >= correlation_threshold) | (result_df['Correlation'] <= -correlation_threshold)) &
-        (result_df['PValue'] <= pvalue_threshold)
-    ]
-
-    if heatmap == True:
-        for cluster_label in significant_features[cluster].unique():
-            # Filter data for the current cluster
-            cluster_data = significant_features[significant_features[cluster] == cluster_label]
-
-            # Pivot the data to create a correlation matrix
-            correlation_matrix = cluster_data.pivot(index='RealFeature', columns='BinaryFeature', values='Correlation')
-
-            # Create a heatmap with annotations for each cluster
-            plt.figure(figsize=(10, 8))
-            sns.heatmap(correlation_matrix, robust=True, center = 0.0 , vmin=-0.2, vmax=0.2, annot=False,  cmap='PiYG', cbar=True)
-            plt.title(f'Correlation Heatmap for Cluster {cluster_label}')
-            plt.show()
-
-    return significant_features
 
 
 
@@ -960,6 +968,79 @@ def calculate_cluster_correlation_real_binary(df_real, df_binary, cluster_column
 
     return result_df
 
+
+
+
+def plot_correlation_heatmap(result_df, correlation_threshold, pvalue_threshold, cluster, heatmap_all=True):
+    """
+    Plot a heatmap to visualize strong correlations.
+
+    Args:
+        result_df (pd.DataFrame): DataFrame containing cluster labels, feature names, binary feature names, correlation coefficients, and p-values.
+        correlation_threshold (float): Threshold for correlation strength (absolute value).
+        pvalue_threshold (float): Threshold for statistical significance.
+        cluster (str): the name of the clustering algorithm.
+        heatmap (bool): Whether to plot the heatmap or just return the significant features.
+
+    Returns:
+        None (displays the plot) if heatmap=True. Otherwise, returns significant features.
+    """
+    # Filter based on correlation strength and statistical significance
+    significant_features = result_df[
+        ((result_df['Correlation'] >= correlation_threshold) | (result_df['Correlation'] <= -correlation_threshold)) &
+        (result_df['PValue'] <= pvalue_threshold)
+    ]
+
+    if heatmap_all:
+        # Calculate the number of rows and columns for subplots
+        num_clusters = len(significant_features[cluster].unique())
+        num_cols = min(num_clusters, 3)
+        num_rows = (num_clusters - 1) // num_cols + 1
+
+        # Increase figure size
+        fig, axes = plt.subplots(num_rows, num_cols, figsize=(14, 5 * num_rows))
+
+        for idx, cluster_label in enumerate(significant_features[cluster].unique()):
+            # Select the current subplot
+            ax = axes[idx // num_cols, idx % num_cols]
+
+            # Filter data for the current cluster
+            cluster_data = significant_features[significant_features[cluster] == cluster_label]
+
+            # Pivot the data to create a correlation matrix
+            correlation_matrix = cluster_data.pivot(index='RealFeature', columns='BinaryFeature', values='Correlation')
+
+            # Create a heatmap with annotations for each cluster
+            sns.heatmap(correlation_matrix, robust=True, center=0.0, vmin=-1, vmax=1, annot=False, cmap='PiYG', cbar=True, ax=ax)
+            # Remove y-axis and x-axis labels
+            ax.set_xlabel('')
+            ax.set_ylabel('')
+            ax.set_title(f'Cluster {cluster_label}')
+
+        # Remove empty subplots if there are fewer clusters than subplots
+        for idx in range(len(significant_features[cluster].unique()), num_rows * num_cols):
+            fig.delaxes(axes.flatten()[idx])
+
+        # Adjust layout
+        plt.tight_layout()
+        plt.show()
+    else: 
+
+        for cluster_label in significant_features[cluster].unique():
+            # Filter data for the current cluster
+            cluster_data = significant_features[significant_features[cluster] == cluster_label]
+
+            # Pivot the data to create a correlation matrix
+            correlation_matrix = cluster_data.pivot(index='RealFeature', columns='BinaryFeature', values='Correlation')
+
+            # Create a heatmap with annotations for each cluster
+            plt.figure(figsize=(10, 8))
+            sns.heatmap(correlation_matrix, robust=True, center = 0.0 , vmin=-1, vmax=1, annot=False,  cmap='PiYG', cbar=True)
+            plt.xlabel('')
+            plt.ylabel('')
+            plt.title(f'Cluster {cluster_label}')
+            plt.show()
+    return significant_features
 
 
 
