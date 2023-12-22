@@ -107,7 +107,7 @@ def optimize_agglomerative_precomputed(data, max_k):
 
     for cl in m_clusters:
 
-        aggl = AgglomerativeClustering(n_clusters=cl, affinity='precomputed', linkage='average')
+        aggl = AgglomerativeClustering(n_clusters=cl, affinity='precomputed', linkage='complete')
         aggl_labels = aggl.fit_predict(data)
         silhouette_agglomerative = silhouette_score(data, aggl_labels , metric='precomputed')
 
@@ -1036,11 +1036,13 @@ def plot_correlation_heatmap(result_df, correlation_threshold, pvalue_threshold,
             # Create a heatmap with annotations for each cluster
             plt.figure(figsize=(10, 8))
             sns.heatmap(correlation_matrix, robust=True, center = 0.0 , vmin=-1, vmax=1, annot=False,  cmap='PiYG', cbar=True)
+            plt.xticks(rotation=90, ha='left')
             plt.xlabel('')
             plt.ylabel('')
             plt.title(f'Cluster {cluster_label}')
             plt.show()
     return significant_features
+
 
 
 
@@ -1460,3 +1462,5 @@ def timeseries_heatmap(labels, timeseriesdataset, clustering_algorithm='db', hea
         create_heatmap(differences, ht_labels,  value_to_reshape, 'Sepsis - Mean Differences')
 
     return significance, differences, mean_of_pop
+
+
