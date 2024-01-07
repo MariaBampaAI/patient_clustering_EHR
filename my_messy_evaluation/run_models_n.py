@@ -14,7 +14,6 @@ from tqdm import tqdm
 
 
 
-
 # Append relevant paths to sys.path
 sys.path.append('/Users/maba4574/Desktop/Work/Projects/MIMIC/patient_clustering_EHR/AE')
 import models
