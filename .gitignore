@@ -155,3 +155,7 @@ dmypy.json
 /results_EQ/saved_models
 /results_EQ_angus/saved_models
 /AE/saved_models
+/results_EQ_angus/losses_avg
+/results_EQ_angus/saved_models_avg
+/results_EQ/losses_avg
+/results_EQ/saved_models_avg
